@@ -2,8 +2,8 @@ import sys
 import os
 import cv2
 from datetime import datetime
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QLabel, QWidget, QScrollArea, QHBoxLayout, QFrame
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QLabel, QWidget, QScrollArea, QHBoxLayout, QFrame, QPushButton
+from PyQt5.QtGui import QPixmap, QImage, QFont
 from PyQt5.QtCore import Qt, QTimer
 import pymysql
 
@@ -20,6 +20,28 @@ class VideoWindow(QMainWindow):
         self.setWindowTitle("PlaCam")
         self.setGeometry(100, 100, 1200, 800)  # Tamaño de la ventana
 
+        # Aplicar estilo minimalista
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #2C2F33;
+                color: #FFFFFF;
+            }
+            QLabel {
+                color: #FFFFFF;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #7289DA;
+                color: #FFFFFF;
+                font-size: 12px;
+                padding: 8px 15px;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #5B6EAE;
+            }
+        """)
+
         # Layout principal
         main_layout = QHBoxLayout()
 
@@ -34,11 +56,13 @@ class VideoWindow(QMainWindow):
         scroll_area.setWidget(scroll_widget)
         scroll_area.setWidgetResizable(True)
         scroll_area.setFixedWidth(300)  # Ancho fijo para la columna izquierda
+        scroll_area.setStyleSheet("background-color: #23272A; border: none;")
 
         # Crear la sección derecha para el video en tiempo real
         self.video_frame = QLabel()
         self.video_frame.setFrameShape(QFrame.Box)
         self.video_frame.setAlignment(Qt.AlignCenter)
+        self.video_frame.setStyleSheet("background-color: #23272A; border: 2px solid #7289DA;")
 
         # Añadir secciones al layout principal
         main_layout.addWidget(scroll_area)
@@ -136,7 +160,47 @@ class VideoWindow(QMainWindow):
         # Crear un widget para la carta y añadirlo a la lista de capturas
         card_widget = QWidget()
         card_widget.setLayout(card_layout)
+        card_widget.setStyleSheet("background-color: #2C2F33; margin: 10px; border-radius: 8px;")
+        card_widget.mousePressEvent = lambda event, p=license_plate, img=image_path: self.show_large_image(p, img)
+
         self.capture_list.addWidget(card_widget)
+
+    def show_large_image(self, license_plate, image_path):
+        # Crear una ventana secundaria para mostrar la imagen en grande
+        large_image_window = QMainWindow(self)
+        large_image_window.setWindowTitle(f"Detalle de la Placa - {license_plate}")
+        large_image_window.setGeometry(300, 200, 800, 600)
+
+        # Layout de la ventana secundaria
+        layout = QVBoxLayout()
+
+        # Mostrar la imagen en grande
+        image_label = QLabel()
+        pixmap = QPixmap(image_path)
+        pixmap = pixmap.scaled(600, 400, Qt.KeepAspectRatio)
+        image_label.setPixmap(pixmap)
+        image_label.setAlignment(Qt.AlignCenter)
+
+        # Mostrar la placa del vehículo
+        title = QLabel(f"Placa: {license_plate}")
+        title.setFont(QFont("Arial", 16))
+        title.setAlignment(Qt.AlignCenter)
+
+        # Botón para cerrar la ventana secundaria
+        close_button = QPushButton("Volver")
+        close_button.clicked.connect(large_image_window.close)
+        close_button.setStyleSheet("margin-top: 20px;")
+
+        # Añadir elementos al layout
+        layout.addWidget(title)
+        layout.addWidget(image_label)
+        layout.addWidget(close_button)
+
+        # Configurar layout de la ventana secundaria
+        widget = QWidget()
+        widget.setLayout(layout)
+        large_image_window.setCentralWidget(widget)
+        large_image_window.show()
 
     def save_to_database(self, license_plate, image_path):
         try:
